@@ -25,10 +25,7 @@ Laravel API + Vue 3 (Composition API) student management app with login, Bearer 
 
 ### Test accounts
 
-| Role | Email | Password |
-|---|---|---|
-| Administrator | admin@example.com | Admin@12345 |
-| Regular User | user@example.com | User@12345 |
+Demo accounts are created by `php artisan migrate --seed` (see `database/seeders`). Passwords are provided separately.
 
 ### Composition API structure
 
