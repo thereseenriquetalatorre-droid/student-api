@@ -1,11 +1,13 @@
 <script setup>
-import { reactive, ref } from 'vue';
-import { request } from '../api';
+import { reactive, ref, computed } from 'vue';
+import { useStudents } from '../composables/useStudents';
 
 const props = defineProps({
     student: { type: Object, default: null },
 });
-const emit = defineEmits(['saved', 'cancel']);
+const emit = defineEmits(['saved', 'cancel', 'failed']);
+
+const { createStudent, updateStudent } = useStudents();
 
 const fields = [
     { key: 'student_number', label: 'Student Number', type: 'text' },
@@ -15,6 +17,7 @@ const fields = [
     { key: 'course', label: 'Course', type: 'text' },
     { key: 'year_level', label: 'Year Level (1 to 6)', type: 'number' },
 ];
+
 
 const form = reactive({
     student_number: props.student?.student_number ?? '',
@@ -26,30 +29,44 @@ const form = reactive({
 });
 
 const errors = ref({});
-const error = ref('');
+const formError = ref('');
 const saving = ref(false);
+const isEdit = computed(() => props.student !== null);
+
+
+function clearFieldError(key) {
+    if (errors.value[key]) {
+        const copy = { ...errors.value };
+        delete copy[key];
+        errors.value = copy;
+    }
+}
 
 async function submit() {
     errors.value = {};
-    error.value = '';
+    formError.value = '';
     saving.value = true;
 
-    const body = {
+    const payload = {
         ...form,
         year_level: form.year_level === '' ? null : Number(form.year_level),
     };
 
     try {
-        if (props.student) {
-            await request(`/students/${props.student.id}`, { method: 'PUT', body });
+        if (isEdit.value) {
+            await updateStudent(props.student.id, payload);
             emit('saved', 'Student updated successfully.');
         } else {
-            await request('/students', { method: 'POST', body });
+            await createStudent(payload);
             emit('saved', 'Student added successfully.');
         }
     } catch (e) {
-        errors.value = e.errors;
-        error.value = e.status === 422 ? 'Please fix the errors below.' : e.message;
+        if (e.status === 422) {
+            errors.value = e.errors;
+            formError.value = 'Please fix the errors below.';
+        } else {
+            emit('failed', e);
+        }
     } finally {
         saving.value = false;
     }
@@ -58,22 +75,29 @@ async function submit() {
 
 <template>
     <div class="overlay" @click.self="$emit('cancel')">
-        <div class="card modal">
-            <h2>{{ student ? 'Edit Student' : 'Add Student' }}</h2>
-            <p v-if="error" class="alert error">{{ error }}</p>
+        <form class="card modal" novalidate @submit.prevent="submit">
+            <h2>{{ isEdit ? 'Edit Student' : 'Add Student' }}</h2>
+            <p v-if="formError" class="alert error">{{ formError }}</p>
 
             <div v-for="f in fields" :key="f.key" class="field">
-                <label>{{ f.label }}</label>
-                <input v-model="form[f.key]" :type="f.type" :class="{ invalid: errors[f.key] }" />
+                <label :for="f.key">{{ f.label }}</label>
+                <input
+                    :id="f.key"
+                    v-model="form[f.key]"
+                    :type="f.type"
+                    :class="{ invalid: errors[f.key] }"
+                    @input="clearFieldError(f.key)"
+                />
                 <small v-if="errors[f.key]" class="field-error">{{ errors[f.key][0] }}</small>
             </div>
 
             <div class="modal-actions">
-                <button class="btn" @click="$emit('cancel')">Cancel</button>
-                <button class="btn primary" :disabled="saving" @click="submit">
+                <button type="button" class="btn" :disabled="saving" @click="$emit('cancel')">Cancel</button>
+                <button type="submit" class="btn primary" :disabled="saving">
+                    <span v-if="saving" class="spinner"></span>
                     {{ saving ? 'Saving...' : 'Save' }}
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </template>
