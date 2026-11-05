@@ -1,50 +1,52 @@
 <script setup>
 import { ref } from 'vue';
-import { request, setSession } from '../api';
+import { useAuth } from '../composables/useAuth';
 
 const emit = defineEmits(['logged-in']);
 
+const { login, isLoggingIn, loginError, loginFieldErrors, clearLoginErrors } = useAuth();
+
 const email = ref('');
 const password = ref('');
-const error = ref('');
-const errors = ref({});
-const loading = ref(false);
 
 async function submit() {
-    error.value = '';
-    errors.value = {};
-    loading.value = true;
-    try {
-        const data = await request('/login', {
-            method: 'POST',
-            body: { email: email.value, password: password.value },
-        });
-        setSession(data.token, data.user);
-        emit('logged-in', data.user);
-    } catch (e) {
-        error.value = e.message;
-        errors.value = e.errors;
-    } finally {
-        loading.value = false;
+    const ok = await login(email.value, password.value);
+    if (ok) {
+        password.value = '';
+        emit('logged-in');
     }
 }
 </script>
 
 <template>
-    <div class="card login">
+    <form class="card login" novalidate @submit.prevent="submit">
         <h2>Login</h2>
-        <p v-if="error" class="alert error">{{ error }}</p>
+        <p v-if="loginError" class="alert error">{{ loginError }}</p>
 
-        <label>Email</label>
-        <input v-model="email" type="email" placeholder="admin@example.com" @keyup.enter="submit" />
-        <small v-if="errors.email" class="field-error">{{ errors.email[0] }}</small>
+        <label for="email">Email</label>
+        <input
+            id="email"
+            v-model="email"
+            type="email"
+            placeholder="admin@example.com"
+            :class="{ invalid: loginFieldErrors.email }"
+            @input="clearLoginErrors"
+        />
+        <small v-if="loginFieldErrors.email" class="field-error">{{ loginFieldErrors.email[0] }}</small>
 
-        <label>Password</label>
-        <input v-model="password" type="password" @keyup.enter="submit" />
-        <small v-if="errors.password" class="field-error">{{ errors.password[0] }}</small>
+        <label for="password">Password</label>
+        <input
+            id="password"
+            v-model="password"
+            type="password"
+            :class="{ invalid: loginFieldErrors.password }"
+            @input="clearLoginErrors"
+        />
+        <small v-if="loginFieldErrors.password" class="field-error">{{ loginFieldErrors.password[0] }}</small>
 
-        <button class="btn primary" :disabled="loading" @click="submit">
-            {{ loading ? 'Logging in...' : 'Login' }}
+        <button type="submit" class="btn primary" :disabled="isLoggingIn">
+            <span v-if="isLoggingIn" class="spinner"></span>
+            {{ isLoggingIn ? 'Logging in...' : 'Login' }}
         </button>
-    </div>
+    </form>
 </template>
