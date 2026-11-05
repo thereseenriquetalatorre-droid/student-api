@@ -7,6 +7,51 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+# Student Management (student-api)
+
+Laravel API + Vue 3 (Composition API) student management app with login, Bearer token authentication, and role-based access.
+
+## Lab 4: Composition API State and Auth
+
+### How to run
+
+1. `composer install`
+2. `npm install`
+3. Copy `.env.example` to `.env`, then run `php artisan key:generate`
+4. `php artisan migrate --seed`
+5. Terminal 1: `php artisan serve`
+6. Terminal 2: `npm run dev`
+7. Open `http://127.0.0.1:8000`
+
+### Test accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Administrator | admin@example.com | Admin@12345 |
+| Regular User | user@example.com | User@12345 |
+
+### Composition API structure
+
+State is organized using composables in `resources/js/composables/`:
+
+- `useAuth.js`: login, logout, token, and role state (`isAdmin`, `roleLabel`)
+- `useStudents.js`: student list, CRUD operations, loading state, and search
+- `useNotification.js`: shared success/error banner
+
+`ref()` and `computed()` are used inside the composables, and `reactive()` is used in `StudentForm.vue` for the form state.
+
+### Features
+
+- Login with Bearer token (token saved in localStorage, stays logged in after refresh)
+- Role-based UI: Administrator can Add/Edit/Delete, Regular User is view only
+- Loading states (login, student list, saving, deleting)
+- Success and error banners, field validation errors
+- 401 (session expired) and 403 (access denied) handling
+- Search box to filter students
+- Controlled inputs with event handling (`@submit.prevent`, `@input`, `v-model`, `@click`)
+
+---
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
